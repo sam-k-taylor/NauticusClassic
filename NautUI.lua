@@ -431,6 +431,7 @@ end
 
 -- Titan stuff...
 -- don't go any further if Titan isn't loaded
+local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 if not IsAddOnLoaded("Titan") then return; end
 
 -- hook menu close (so we can close our dropdown sooner when clicking Titan bar)

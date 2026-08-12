@@ -146,7 +146,7 @@ local function create_line(parent, i)
 	b.handlerValues = {}
 
 	if parent.db.lock then
-		b:RegisterForDrag(nil)
+		b:RegisterForDrag()
 		b:EnableMouse(false)
 	else
 		b:RegisterForDrag("LeftButton")
@@ -307,16 +307,16 @@ local function Lock(self, toggle)
 	--self:SetScript("OnEvent", modifier_event)
 	--self:SetScript("OnUpdate", nil)
 
-	self:RegisterForDrag(nil)
+	self:RegisterForDrag()
 	self:EnableMouse(false)
 	self:StopMovingOrSizing()
 	
 	for i,l in pairs(self.lines) do
-		l:RegisterForDrag(nil)
+		l:RegisterForDrag()
 		l:EnableMouse(false)
 	end
 	for f in pairs(self.associates) do
-		f:RegisterForDrag(nil)
+		f:RegisterForDrag()
 		f:EnableMouse(false)
 		if f.OnLock then f:OnLock() end
 	end
@@ -394,7 +394,7 @@ function lib:New(name, options, id, parent)
 	if lib.registry[name] then
 		frame = self.registry[name]
 	else
-		frame = CreateFrame("Frame", name, parent or UIParent)
+		frame = CreateFrame("Frame", name, parent or UIParent, "BackdropTemplate")
 		frame.lines = {}
 		self.registry[name] = frame
 	end
