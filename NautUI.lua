@@ -120,8 +120,8 @@ function NauticusClassic:TransportSelectInitialise(frame, level)
 		AddLine(
 			L["Options"], -- text
 			function()
-				InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
-				InterfaceOptionsFrame_OpenToCategory(self.optionsFrame); end -- func
+				Settings.OpenToCategory(self.optionsFrame.name)
+			end -- func
 		)
 	end
 
