@@ -8,7 +8,7 @@ local GREY    = "|cffbababa"
 
 -- constants
 local NONE = -1
-local ARTWORK_PATH = "Interface\\AddOns\\NauticusClassic\\Artwork\\"
+local ARTWORK_PATH = "Interface\\AddOns\\NauticusClassicResurrected\\Artwork\\"
 local ARTWORK_ZONING = ARTWORK_PATH.."MapIcon_Zoning"
 local ARTWORK_DEPARTING = ARTWORK_PATH.."Departing"
 local ARTWORK_IN_TRANSIT = ARTWORK_PATH.."Transit"

@@ -8,7 +8,7 @@ local GREY    = "|cffbababa"
 
 -- constants
 local NONE = -1
-local ARTWORK_PATH = "Interface\\AddOns\\NauticusClassic\\Artwork\\"
+local ARTWORK_PATH = "Interface\\AddOns\\NauticusClassicResurrected\\Artwork\\"
 local ARTWORK_LOGO = ARTWORK_PATH.."NauticusClassicLogo"
 local ARTWORK_ALARM = "Interface\\Icons\\INV_Misc_PocketWatch_02"
 local NUMBER_FONT = "Fonts\\ARIALN.TTF"
