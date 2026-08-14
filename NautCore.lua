@@ -32,7 +32,8 @@ local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetad
 -- object variables
 NauticusClassic.DEFAULT_PREFIX = "NauticSync" -- do not change!
 NauticusClassic.version = GetAddOnMetadata("NauticusClassicResurrected", "Version")
-NauticusClassic.versionNum = tonumber((NauticusClassic.version):gsub("%.", ""))
+local versionDigits = (NauticusClassic.version):gsub("%.", "") -- discard gsub's 2nd return (match count)
+NauticusClassic.versionNum = tonumber(versionDigits)
 NauticusClassic.lowestNameTime = "--"
 NauticusClassic.tempText = ""
 NauticusClassic.tempTextCount = 0
@@ -323,7 +324,7 @@ end
 
 local onUpdateTimer = nil
 
-function GetCurrentMapOrInstanceID()
+local function GetCurrentMapOrInstanceID()
 	local id = C_Map.GetBestMapForUnit("player")
 	if id == 1414 or id == 1415 then -- block returning continents
 		return nil
