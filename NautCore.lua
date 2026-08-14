@@ -23,9 +23,16 @@ local HBD = LibStub("HereBeDragons-2.0")
 local Pins = LibStub("HereBeDragons-Pins-2.0")
 local ldbicon = LibStub("LibDBIcon-1.0")
 
+-- read our own version from the .toc so it can never drift out of sync with
+-- what's actually shipped; versionNum packs "MAJOR.MINOR.PATCH" into digits
+-- (e.g. 1.4.1 -> 141) for the numeric comparisons in NautComms.lua, so each
+-- version segment must stay a single digit (0-9) for the encoding to be lossless
+local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+
 -- object variables
 NauticusClassic.DEFAULT_PREFIX = "NauticSync" -- do not change!
-NauticusClassic.versionNum = 131 -- for comparison
+NauticusClassic.version = GetAddOnMetadata("NauticusClassicResurrected", "Version")
+NauticusClassic.versionNum = tonumber((NauticusClassic.version):gsub("%.", ""))
 NauticusClassic.lowestNameTime = "--"
 NauticusClassic.tempText = ""
 NauticusClassic.tempTextCount = 0
@@ -756,18 +763,7 @@ function NauticusClassic:InitialiseConfig()
 	transports = self.transports
 	self.debug = self.db.global.debug
 
-	do
-		local version
-		--@non-debug@
-		version = "1.3.1"
-		--@end-non-debug@
-		local title = "NauticusClassic"
-		if version then
-			self.version = version
-			title = title.." "..version
-		end
-		self.title = title
-	end
+	self.title = "NauticusClassic "..self.version
 
 	if self.db.global.newerVersion then
 		--self:DebugMessage("new version: "..self.db.global.newerVersion.." vs our "..self.versionNum)
