@@ -94,7 +94,7 @@ local _options = {
 			NauticusClassic.db.profile.showMiniIcons = val
 			if not val then
 				for _, t in pairs(transports) do
-					Pins:RemoveMinimapIcon(self, t.minimap_icon)
+					Pins:RemoveMinimapIcon(NauticusClassic, t.minimap_icon)
 					t.minimap_icon:Hide()
 				end
 			else
@@ -114,7 +114,7 @@ local _options = {
 			NauticusClassic.db.profile.showWorldIcons = val
 			if not val then
 				for _, t in pairs(transports) do
-					Pins:RemoveWorldMapIcon(self, t.worldmap_icon)
+					Pins:RemoveWorldMapIcon(NauticusClassic, t.worldmap_icon)
 					t.worldmap_icon:Hide()
 				end
 			else
