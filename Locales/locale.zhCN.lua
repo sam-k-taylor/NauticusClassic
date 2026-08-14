@@ -65,7 +65,7 @@ L["Shows only transports relevant to your current zone."] = "只显示你目前�
 L["Hint: Click to cycle transport."] = "提示: 左键：传送周期"
 L["Alt-Click to set up alarm."] = "Alt+左键：设置报警"
 L["Ctrl-Click to broadcast in %s."] = true
-L["New version available! Visit github.com/psynct/NauticusClassic"] = "新版本可用！访问 github.com/psynct/NauticusClassic"
+L["New version available! Visit github.com/sam-k-taylor/NauticusClassicResurrected"] = "新版本可用！访问 github.com/sam-k-taylor/NauticusClassicResurrected"
 
 -- ship names
 L["The Thundercaller"] = "唤雷号"

@@ -65,7 +65,7 @@ L["Shows only transports relevant to your current zone."] = "Zeigt nur Transport
 L["Hint: Click to cycle transport."] = "Hinweis: Klick - Reiseroute auswählen."
 L["Alt-Click to set up alarm."] = "Alt-Klick - Alarm aktivieren."
 L["Ctrl-Click to broadcast in %s."] = true
-L["New version available! Visit github.com/psynct/NauticusClassic"] = "Neue Version verfügbar! Schau auf github.com/psynct/NauticusClassic"
+L["New version available! Visit github.com/sam-k-taylor/NauticusClassicResurrected"] = "Neue Version verfügbar! Schau auf github.com/sam-k-taylor/NauticusClassicResurrected"
 
 -- ship names
 L["The Thundercaller"] = "Die Donnersturm"

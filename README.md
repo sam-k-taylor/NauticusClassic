@@ -1,4 +1,4 @@
-# NauticusClassic - A World of Warcraft Classic addon
+# NauticusClassicResurrected - A World of Warcraft Classic addon
 
 NauticusClassic tracks the precise arrival & departure schedules of boats and Zeppelins around Azeroth and displays them on the Mini-Map and World Map in real-time.
 
@@ -60,3 +60,5 @@ It doesn't! We can only assume how Blizzard calculates transport schedules and t
 
 ---
 Nauticus Classic is a rewrite of Nauticus by Drooliog which was a complete rewrite of ZeppelinMaster which was originally conceived by Sammysnake. He runs a DKP hosting service @ dkphosting.net.
+
+NauticusClassicResurrected is a fork of Nauticus Classic by psynct, continuing its maintenance and development.
