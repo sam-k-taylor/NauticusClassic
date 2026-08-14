@@ -312,7 +312,6 @@ function NauticusClassic:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("NauticusClassic5DB", defaults)
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("NauticusClassic", options)
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("NauticusClassicSlashCommand", optionsSlash, { "nauticus", "naut" })
-	options.args.NauticusClassicSlashCommand = optionsSlash
 	self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NauticusClassic", nil, nil, "GUI")
 	ldbicon:Register("NauticusClassic", self.dataobj, self.db.profile.minimap)
 
