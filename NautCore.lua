@@ -693,6 +693,8 @@ function NauticusClassic:CheckTriggers_OnUpdate_Unsafe()
 								self:SetKnownCycle(transit, GetTime() - last_trig + keep_time, 0, 0)
 								self:RequestTransport(transit, "ALL")
 								self:DoRequest(10 + math.random() * 10, "ALL")
+								self:RequestTransport(transit, "WIDE")
+								self:DoRequest(10 + math.random() * 10, "WIDE")
 								keep_time = nil
 								last_trig = GetTime()
 							end
@@ -780,6 +782,8 @@ function NauticusClassic:SetKnownTime(instanceID, transit, index, x, y, set)
 		self:SetKnownCycle(transit, sum_time, 0, 0)
 		self:RequestTransport(transit, "ALL")
 		self:DoRequest(10 + math.random() * 10, "ALL")
+		self:RequestTransport(transit, "WIDE")
+		self:DoRequest(10 + math.random() * 10, "WIDE")
 	else
 		keep_time = sum_time
 	end

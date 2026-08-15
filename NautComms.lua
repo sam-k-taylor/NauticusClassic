@@ -266,8 +266,12 @@ end
 -- handlers, never sent immediately from a timer or slash command.
 ---------------------------------------------------------------------------
 
-local WIDE_CHANNEL_BASE = "NauticusSync118" -- do not change; must match across all clients to interoperate
-local WIDE_CHANNEL_PW = WIDE_CHANNEL_BASE.."pw"
+-- no password: a prior test build joined "NauticusSync118" with no password, and a
+-- channel's password is fixed at creation, so later joins supplying one against that
+-- already-existing unpassworded channel could silently misbehave. Renamed to a fresh
+-- name to avoid inheriting that contaminated state.
+local WIDE_CHANNEL_BASE = "NauticusSync119" -- do not change; must match across all clients to interoperate
+local WIDE_CHANNEL_PW = nil
 local WIDE_TAG = "NST1 " -- identifies our messages on the shared channel; also versions the wire format
 
 local wideChannelName = WIDE_CHANNEL_BASE
