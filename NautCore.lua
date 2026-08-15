@@ -347,6 +347,7 @@ function NauticusClassic:OnEnable()
 	self:RegisterEvent("ZONE_CHANGED")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:RegisterComm(self.DEFAULT_PREFIX)
+	self:JoinWideChannel()
 
 	NauticusClassic.iconRenderTimer = self:ScheduleRepeatingTimer("DrawMapIcons", 1 / self.db.profile.iconFramerate, true, true)
 	self:ScheduleRepeatingTimer("Clock_OnUpdate", 1) -- every second (clock tick)
@@ -914,6 +915,7 @@ function NauticusClassic:InitialiseConfig()
 end
 
 function NauticusClassic:PLAYER_ENTERING_WORLD()
+	self:JoinWideChannel()
 	self:UpdateChannel(10)
 
 	self.currentZoneId = GetCurrentMapOrInstanceID()

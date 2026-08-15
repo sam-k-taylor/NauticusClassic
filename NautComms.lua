@@ -17,19 +17,22 @@ local requests = {
 	["ALL"] = nil,
 	["RAID"] = nil,
 	["GUILD"] = nil,
-	["YELL"] = nil
+	["YELL"] = nil,
+	["WIDE"] = nil
 }
 local requestLists = {
 	["ALL"] = {},
 	["RAID"] = {},
 	["GUILD"] = {},
-	["YELL"] = {}
+	["YELL"] = {},
+	["WIDE"] = {}
 }
 local requestVersions = {
 	["ALL"] = false,
 	["RAID"] = false,
 	["GUILD"] = false,
-	["YELL"] = false
+	["YELL"] = false,
+	["WIDE"] = false
 }
 
 function NauticusClassic:CancelRequest(distribution)
@@ -69,19 +72,29 @@ local function GetLag()
 	return lag / 1000.0
 end
 
-local crunch, uncrunch
+-- printable-only alphabet: safe to send as literal chat text (WIDE distribution).
+-- excludes: space, comma, colon, s, S, %, tab (\009) — same reserved set as below
+local SAFE_MAP =
+	"0123456789ABCDEFGHIJKLMNOPQRTUVWXYZabcdefghijklmnopqrtuvwxyz!\"#$&'()*+-./;<=>?@[\\]^_`{}~"
 
-do
-	local map = -- excludes: space, comma, colon, s, S, %, tab (\009) ; invalid: nul (\000), line feed (\010), bar (\124), >\127
-		"0123456789ABCDEFGHIJKLMNOPQRTUVWXYZabcdefghijklmnopqrtuvwxyz!\"#$&'()*+-./;<=>?@[\\]^_`{}~"..
-		"\001\002\003\004\005\006\007\008\011\012"..
-		"\014\015\016\017\018\019\020\021\022\023\024\025\026\027\028\029\030\031\127"
+-- adds non-printable control bytes: fine over SendAddonMessage (raw byte transport),
+-- unsafe over literal SendChatMessage text. excludes: nul (\000), line feed (\010), bar (\124), >\127
+local FULL_MAP = SAFE_MAP..
+	"\001\002\003\004\005\006\007\008\011\012"..
+	"\014\015\016\017\018\019\020\021\022\023\024\025\026\027\028\029\030\031\127"
 
+local function buildCodec(map)
 	local _base = strlen(map)
 	local digits = {}
+	local chrmap = {}
 
-	function crunch(num)
-		--if true then return num; end
+	for i = 1, _base do
+		local c = strbyte(map, i)
+		chrmap[c] = i-1
+		digits[i-1] = strchar(c)
+	end
+
+	local function crunch(num)
 		if 0 > num then error("negative number"); end -- shouldn't happen, but just in case
 		local s = ""
 		local remain
@@ -93,10 +106,7 @@ do
 		return s
 	end
 
-	local chrmap = {}
-
-	function uncrunch(s)
-		--if true then return tonumber(s); end
+	local function uncrunch(s)
 		local num = 0
 		local base = 1
 		local c
@@ -112,14 +122,11 @@ do
 		return num
 	end
 
-	local c
-
-	for i = 1, _base do
-	   c = strbyte(map, i)
-	   chrmap[c] = i-1
-	   digits[i-1] = strchar(c)
-	end
+	return crunch, uncrunch
 end
+
+local crunch, uncrunch = buildCodec(FULL_MAP)
+local crunchSafe, uncrunchSafe = buildCodec(SAFE_MAP)
 
 -- by Mikk; from http://www.wowwiki.com/StringHash
 local function StringHash(text)
@@ -135,19 +142,20 @@ local function StringHash(text)
 end
 
 function NauticusClassic:BroadcastTransportData(distribution)
+	local enc = (distribution == "WIDE") and crunchSafe or crunch
 	local since, boots, swaps
 	local lag = GetLag()
 	local trans_str = ""
 
 	for transit in pairs(requestLists[distribution]) do
 		since, boots, swaps = self:GetKnownCycle(transit)
-		trans_str = trans_str..crunch(transit)
+		trans_str = trans_str..enc(transit)
 
 		if since ~= nil then
-			trans_str = trans_str..":"..crunch(math.floor((since+lag)*1000.0+.5))
+			trans_str = trans_str..":"..enc(math.floor((since+lag)*1000.0+.5))
 
 			if swaps ~= 1 then
-				trans_str = trans_str..":"..crunch(swaps)
+				trans_str = trans_str..":"..enc(swaps)
 			end
 
 			if boots ~= 0 then
@@ -155,7 +163,7 @@ function NauticusClassic:BroadcastTransportData(distribution)
 					trans_str = trans_str..":"
 				end
 
-				trans_str = trans_str..":"..crunch(boots)
+				trans_str = trans_str..":"..enc(boots)
 			end
 		end
 
@@ -166,7 +174,7 @@ function NauticusClassic:BroadcastTransportData(distribution)
 
 	if trans_str ~= "" then
 		trans_str = strsub(trans_str, 1, -2) -- remove the last comma
-		self:SendMessage(CMD_KNOWN.." "..DATA_VERSION.." "..trans_str.." "..crunch(StringHash(trans_str)), distribution)
+		self:SendMessage(CMD_KNOWN.." "..DATA_VERSION.." "..trans_str.." "..enc(StringHash(trans_str)), distribution)
 		self:DebugMessage("tell our transports ; length: "..strlen(trans_str))
 	else
 		self:DebugMessage("nothing to tell")
@@ -200,6 +208,8 @@ function NauticusClassic:SendMessage(msg, distribution)
 				self:SendCommMessage(self.DEFAULT_PREFIX, msg, "GUILD")
 			end
 			self:SendCommMessage(self.DEFAULT_PREFIX, msg, "YELL")
+		elseif distribution == "WIDE" then
+			self:EnqueueWideMessage(msg)
 		else
 			self:SendCommMessage(self.DEFAULT_PREFIX, msg, distribution)
 		end
@@ -217,6 +227,20 @@ local function GetArgs(message, separator)
 	return args
 end
 
+-- shared dispatch for a decoded protocol message, regardless of transport
+-- (AceComm addon message vs. literal WIDE chat text)
+local function ProcessMessage(msg, distribution, sender)
+	if 254 <= strlen(msg) then return; end -- message too big, probably corrupted
+
+	local args = GetArgs(msg, " ")
+
+	if args[1] == CMD_VERSION then -- version, num
+		NauticusClassic:ReceiveMessage_version(tonumber(args[2]), distribution, sender)
+	elseif args[1] == CMD_KNOWN then -- known, { transports }
+		NauticusClassic:ReceiveMessage_known(tonumber(args[2]), args[3], args[4], distribution, sender)
+	end
+end
+
 function NauticusClassic:OnCommReceived(prefix, msg, distribution, sender)
 	if sender ~= UnitName("player") and strlower(prefix) == strlower(self.DEFAULT_PREFIX) and
 		(distribution == "PARTY" or distribution == "RAID" or distribution == "GUILD" or distribution == "YELL") then
@@ -224,16 +248,184 @@ function NauticusClassic:OnCommReceived(prefix, msg, distribution, sender)
 			distribution = "RAID"
 		end
 		self:DebugMessage("received sender: "..sender.." ; dist: "..distribution.." ; length: "..strlen(msg))
-		if 254 <= strlen(msg) then return; end -- message too big, probably corrupted
+		ProcessMessage(msg, distribution, sender)
+	end
+end
 
-		local args = GetArgs(msg, " ")
+---------------------------------------------------------------------------
+-- WIDE distribution: realm-wide reach over a hidden custom chat channel.
+--
+-- SendAddonMessage over "CHANNEL" distribution is rejected by the Classic
+-- client (confirmed: returns didSend=false for both custom and built-in
+-- channels). So instead of an addon message, WIDE messages are sent as
+-- literal chat text (SendChatMessage) on a hidden custom channel, tagged
+-- with WIDE_TAG to identify them and suppressed from the chat UI.
+--
+-- Classic also requires a real hardware event (mouse click / key press) to
+-- send a chat message — sends are queued and only flushed from those event
+-- handlers, never sent immediately from a timer or slash command.
+---------------------------------------------------------------------------
 
-		if args[1] == CMD_VERSION then -- version, num
-			self:ReceiveMessage_version(tonumber(args[2]), distribution, sender)
-		elseif args[1] == CMD_KNOWN then -- known, { transports }
-			self:ReceiveMessage_known(tonumber(args[2]), args[3], args[4], distribution, sender)
+local WIDE_CHANNEL_BASE = "NauticusSync118" -- do not change; must match across all clients to interoperate
+local WIDE_CHANNEL_PW = WIDE_CHANNEL_BASE.."pw"
+local WIDE_TAG = "NST1 " -- identifies our messages on the shared channel; also versions the wire format
+
+local wideChannelName = WIDE_CHANNEL_BASE
+local wideChannelId
+local wideQueue = {} -- FIFO of { text, enqueueTime }
+local WIDE_QUEUE_MAX_AGE = 30 -- seconds; drop stale queued sends rather than trickle out outdated data
+
+local widePlayerThrottle = {}
+local wideShadowbanned = {}
+local WIDE_SHADOWBAN_THRESHOLD = 200 -- messages from one sender before we stop listening to them
+local WIDE_THROTTLE_RESET_INTERVAL = 600 -- seconds
+
+local function wideThrottleCheck(sender)
+	if wideShadowbanned[sender] then return true; end
+	widePlayerThrottle[sender] = (widePlayerThrottle[sender] or 0) + 1
+	if widePlayerThrottle[sender] > WIDE_SHADOWBAN_THRESHOLD then
+		wideShadowbanned[sender] = true
+	end
+	return false
+end
+
+C_Timer.NewTicker(WIDE_THROTTLE_RESET_INTERVAL, function()
+	wipe(widePlayerThrottle)
+end)
+
+local function hideWideChannelFromChatFrames()
+	for i = 1, 10 do
+		if _G["ChatFrame"..i] then
+			ChatFrame_RemoveChannel(_G["ChatFrame"..i], wideChannelName)
 		end
 	end
+end
+
+-- suppress our channel's traffic from the chat UI entirely (join/leave/notice/text);
+-- also avoids Blizzard's HistoryKeeper building up permanent per-sender entries
+-- on a channel with many unique senders
+local function wideChatFilter(self, event, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, ...)
+	if arg9 and strupper(arg9) == strupper(wideChannelName) then
+		return true
+	end
+	return false
+end
+
+do
+	local addFilter = ChatFrameUtil and ChatFrameUtil.AddMessageEventFilter or ChatFrame_AddMessageEventFilter
+	addFilter("CHAT_MSG_CHANNEL", wideChatFilter)
+	addFilter("CHAT_MSG_CHANNEL_NOTICE", wideChatFilter)
+	addFilter("CHAT_MSG_CHANNEL_NOTICE_USER", wideChatFilter)
+	addFilter("CHAT_MSG_CHANNEL_JOIN", wideChatFilter)
+	addFilter("CHAT_MSG_CHANNEL_LEAVE", wideChatFilter)
+end
+
+local wideJoinPending = false
+
+-- drainWideQueue calls JoinWideChannel() on every hardware event while unjoined
+-- (mouse clicks can fire many times a second); wideJoinPending avoids spamming
+-- JoinChannelByName while a join attempt is already in flight
+function NauticusClassic:JoinWideChannel()
+	local id = GetChannelName(wideChannelName)
+	if id and id > 0 then
+		wideChannelId = id
+		hideWideChannelFromChatFrames()
+		return
+	end
+
+	if wideJoinPending then return end
+	wideJoinPending = true
+
+	JoinChannelByName(wideChannelName, WIDE_CHANNEL_PW, nil, true)
+
+	local remainingAttempts = 5
+	C_Timer.NewTicker(4, function(ticker)
+		local channelNum = GetChannelName(wideChannelName)
+		if channelNum and channelNum > 0 then
+			wideChannelId = channelNum
+			hideWideChannelFromChatFrames()
+			wideJoinPending = false
+			ticker:Cancel()
+			return
+		end
+
+		remainingAttempts = remainingAttempts - 1
+		if remainingAttempts < 1 then
+			ticker:Cancel()
+			-- fall back to a differently-named channel in case the base name is unavailable
+			wideChannelName = wideChannelName.."b"
+			self:DebugMessage("wide channel join failed; trying "..wideChannelName)
+			JoinChannelByName(wideChannelName, WIDE_CHANNEL_PW, nil, true)
+			-- give the fallback name its own attempt window before allowing a re-trigger
+			C_Timer.After(4, function() wideJoinPending = false end)
+		end
+	end)
+end
+
+function NauticusClassic:EnqueueWideMessage(msg)
+	table.insert(wideQueue, { WIDE_TAG..msg, GetServerTime() })
+end
+
+local function trimStaleWideMessages()
+	local now = GetServerTime()
+	while #wideQueue > 0 and (now - wideQueue[1][2]) >= WIDE_QUEUE_MAX_AGE do
+		table.remove(wideQueue, 1)
+	end
+end
+
+local function drainWideQueue()
+	trimStaleWideMessages()
+	if #wideQueue == 0 then return; end
+
+	if not wideChannelId then
+		NauticusClassic:JoinWideChannel()
+		return
+	end
+
+	local CTL = _G.ChatThrottleLib
+	local text = wideQueue[1][1]
+	if CTL then
+		local cost = strlen(text) + (CTL.MSG_OVERHEAD or 40)
+		if CTL.bQueueing or cost >= CTL:UpdateAvail() then
+			return -- try again on the next hardware event
+		end
+	end
+
+	local ok = pcall(C_ChatInfo.SendChatMessage, text, "CHANNEL", nil, wideChannelId)
+	if ok then
+		table.remove(wideQueue, 1)
+	end
+end
+
+-- Classic requires a genuine hardware event (mouse click / key press) to send
+-- a chat message; a slash command or timer callback does not qualify and the
+-- send is silently rejected. Piggyback outbound sends on the player's own
+-- ambient input instead of sending immediately.
+WorldFrame:HookScript("OnMouseDown", drainWideQueue)
+
+local wideInputFrame = CreateFrame("Frame", nil, UIParent)
+wideInputFrame:SetScript("OnKeyDown", drainWideQueue)
+wideInputFrame:SetPropagateKeyboardInput(true)
+
+local wideChannelWatcher = CreateFrame("Frame")
+wideChannelWatcher:RegisterEvent("CHAT_MSG_CHANNEL")
+wideChannelWatcher:SetScript("OnEvent", function(_, _, text, sender)
+	if strsub(text, 1, strlen(WIDE_TAG)) ~= WIDE_TAG then return end -- not ours / different protocol version
+
+	local senderName = strsplit("-", sender) -- strip realm suffix
+	if senderName == UnitName("player") then return end
+	if wideThrottleCheck(senderName) then return end
+
+	local msg = strsub(text, strlen(WIDE_TAG) + 1)
+	NauticusClassic:DebugMessage("wide received sender: "..senderName.." ; length: "..strlen(msg))
+	ProcessMessage(msg, "WIDE", senderName)
+end)
+
+SLASH_NAUTWIDE1 = "/nautwide"
+SlashCmdList["NAUTWIDE"] = function()
+	print(format("|cff33ff99[NauticusWide]|r channel=%s ; id=%s ; queued=%d ; oldest_age=%s",
+		wideChannelName, tostring(wideChannelId), #wideQueue,
+		#wideQueue > 0 and tostring(GetServerTime() - wideQueue[1][2]).."s" or "n/a"))
 end
 
 function NauticusClassic:ReceiveMessage_version(clientversion, distribution, sender)
@@ -266,18 +458,20 @@ function NauticusClassic:ReceiveMessage_known(version, transports, hash, distrib
 
 	local lag = GetLag()
 	local set, respond, since, boots, swaps
+	local safe = (distribution == "WIDE")
+	local dec = safe and uncrunchSafe or uncrunch
 
 	--[===[@debug@
 	if hash and self.debug then
 		local rehash = StringHash(transports)
-		hash = uncrunch(hash)
+		hash = dec(hash)
 		if hash ~= rehash then
 			self:DebugMessage("wrong hash: "..hash.." (supplied) vs "..rehash.." (computed)")
 		end
 	end
 	--@end-debug@]===]
 
-	for transit, values in pairs(self:StringToKnown(transports)) do
+	for transit, values in pairs(self:StringToKnown(transports, safe)) do
 		since, boots, swaps = values.since, values.boots, values.swaps
 
 		if since ~= nil then
@@ -380,24 +574,25 @@ function NauticusClassic:IsBetter(transit, since, boots, swaps)
 	end
 end
 
-function NauticusClassic:StringToKnown(transports)
+function NauticusClassic:StringToKnown(transports, safe)
+	local dec = safe and uncrunchSafe or uncrunch
 	local args_tmp, transit, since, swaps, boots
 	local args = GetArgs(transports, ",")
 	local trans_tab = {}
 
 	for t = 1, #(args), 1 do
 		args_tmp = GetArgs(args[t], ":")
-		transit = uncrunch(args_tmp[1])
+		transit = dec(args_tmp[1])
 
 		if transit and self.transports[transit] then
 			since = args_tmp[2]
 			if since then
-				since, swaps, boots = uncrunch(since), args_tmp[3], args_tmp[4]
+				since, swaps, boots = dec(since), args_tmp[3], args_tmp[4]
 				if since then
 					trans_tab[transit] = {
 						['since'] = since,
-						['boots'] = boots and uncrunch(boots) or 0,
-						['swaps'] = swaps and uncrunch(swaps) or 1,
+						['boots'] = boots and dec(boots) or 0,
+						['swaps'] = swaps and dec(swaps) or 1,
 					}
 				end
 			else
@@ -430,8 +625,12 @@ function NauticusClassic:UpdateChannel(wait)
 
 	for id in pairs(self.transports) do
 		requestLists["ALL"][id] = true
+		requestLists["WIDE"][id] = true
 	end
 
 	requestVersions["ALL"] = true
 	self:DoRequest(5 + math.random() * 15, "ALL")
+
+	requestVersions["WIDE"] = true
+	self:DoRequest(5 + math.random() * 15, "WIDE")
 end
