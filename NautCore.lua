@@ -403,9 +403,7 @@ end
 
 local isDrawing
 
-function NauticusClassic:DrawMapIcons(renderWorldMapIcons, renderMinimapIcons)
-	if isDrawing then return; end; isDrawing = true
-
+function NauticusClassic:DrawMapIcons_Unsafe(renderWorldMapIcons, renderMinimapIcons)
 	local liveData, cycle, index, offsets, x, y, wzone, xw, yw, xm, ym, angle, transit_data, fraction,
 		isZoning, isZoneInteresting, isFactionInteresting, buttonMini, buttonWorld
 
@@ -524,10 +522,25 @@ function NauticusClassic:DrawMapIcons(renderWorldMapIcons, renderMinimapIcons)
 		end
 	end
 
+end
+
+-- DrawMapIcons_Unsafe touches many external APIs (HereBeDragons, WorldMapFrame,
+-- Pins, CVars) that another addon's map/minimap hooks can disturb; if it errors
+-- mid-loop, isDrawing must still be released or every future call (including the
+-- repeating timer and the WorldMapFrame OnMapChanged hook) silently no-ops forever.
+function NauticusClassic:DrawMapIcons(renderWorldMapIcons, renderMinimapIcons)
+	if isDrawing then return; end
+	isDrawing = true
+
+	local ok, err = pcall(self.DrawMapIcons_Unsafe, self, renderWorldMapIcons, renderMinimapIcons)
+	if not ok then
+		self:DebugMessage("DrawMapIcons error: "..tostring(err))
+	end
+
 	isDrawing = false
 end
 
-function NauticusClassic:Clock_OnUpdate()
+function NauticusClassic:Clock_OnUpdate_Unsafe()
 	if alarmDinged then
 		alarmCountdown = alarmCountdown - 1
 
@@ -589,12 +602,22 @@ function NauticusClassic:Clock_OnUpdate()
 	self:UpdateDisplay()
 end
 
+-- AceTimer-3.0 (bundled) does not pcall repeating-timer callbacks: its reschedule
+-- call sits after the callback invocation in the same function, so an uncaught
+-- error here would silently and permanently stop this timer from ever firing again.
+function NauticusClassic:Clock_OnUpdate()
+	local ok, err = pcall(self.Clock_OnUpdate_Unsafe, self)
+	if not ok then
+		self:DebugMessage("Clock_OnUpdate error: "..tostring(err))
+	end
+end
+
 local x, y, dx, dy, ax, ay, dax, day, tx, ty, txp, typ, instanceID, dist, post, last_trig, keep_time
 local old_x, old_y, old_ax, old_ay -- old player coords
 local prev_time = 0
 local prev_rot = 0
 
-function NauticusClassic:CheckTriggers_OnUpdate()
+function NauticusClassic:CheckTriggers_OnUpdate_Unsafe()
 	self:UpdateZone(true)
 
 	-- remember if we've already triggered a set of coords within the last 30 secs
@@ -704,6 +727,14 @@ function NauticusClassic:CheckTriggers_OnUpdate()
 				end
 			end
 		end
+	end
+end
+
+-- see Clock_OnUpdate: guards against one bad tick permanently killing this repeating timer
+function NauticusClassic:CheckTriggers_OnUpdate()
+	local ok, err = pcall(self.CheckTriggers_OnUpdate_Unsafe, self)
+	if not ok then
+		self:DebugMessage("CheckTriggers_OnUpdate error: "..tostring(err))
 	end
 end
 
