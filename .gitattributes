@@ -1,0 +1,5 @@
+# Files that shouldn't ship inside the addon release zip.
+# (git archive, which package.sh uses, honors export-ignore.)
+.gitattributes export-ignore
+.gitignore export-ignore
+update-libs.sh export-ignore

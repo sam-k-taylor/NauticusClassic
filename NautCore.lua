@@ -950,12 +950,15 @@ function NauticusClassic:InitialiseConfig()
 end
 
 function NauticusClassic:PLAYER_ENTERING_WORLD()
+	-- stays registered for the whole session (not just the first load): a
+	-- zeppelin/boat continent crossing is itself a zone transition, and the
+	-- hidden WIDE channel can silently drop membership across one, so it
+	-- needs to be re-verified/rejoined every time, not just once at login.
 	self:JoinWideChannel()
 	self:UpdateChannel(10)
 
 	self.currentZoneId = GetCurrentMapOrInstanceID()
 	if self.currentZoneId then
-		self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 		self.currentZoneTransports = self.transitZones[self.currentZoneId]
 	end
 end

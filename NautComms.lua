@@ -201,8 +201,10 @@ function NauticusClassic:SendMessage(msg, distribution)
 	if not self.comm_disable then
 		self:DebugMessage("sending msg dist: "..distribution.." ; length: "..strlen(msg))
 		if distribution == "ALL" then
-			if IsInGroup() then
+			if IsInRaid() then
 				self:SendCommMessage(self.DEFAULT_PREFIX, msg, "RAID")
+			elseif IsInGroup() then
+				self:SendCommMessage(self.DEFAULT_PREFIX, msg, "PARTY")
 			end
 			if IsInGuild() then
 				self:SendCommMessage(self.DEFAULT_PREFIX, msg, "GUILD")
