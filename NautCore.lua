@@ -468,7 +468,11 @@ function NauticusClassic:DrawMapIcons_Unsafe(renderWorldMapIcons, renderMinimapI
 							wcont = 1415
 						end
 						xw, yw = HBD:GetWorldCoordinatesFromAzerothWorldMap(x, y, wzone)
-						xm, ym = HBD:GetWorldCoordinatesFromAzerothWorldMap(x, y, instanceID)
+						if wzone == instanceID then
+							xm, ym = xw, yw
+						else
+							xm, ym = nil, nil
+						end
 
 						-- only render world map icon if it is visible in current viewport
 						if WorldMapVisible and WorldMapFrame:GetMapID() then
