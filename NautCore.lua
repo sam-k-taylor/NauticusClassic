@@ -34,6 +34,7 @@ NauticusClassic.DEFAULT_PREFIX = "NauticSync" -- do not change!
 NauticusClassic.version = GetAddOnMetadata("NauticusClassicResurrected", "Version")
 local versionDigits = (NauticusClassic.version):gsub("%.", "") -- discard gsub's 2nd return (match count)
 NauticusClassic.versionNum = tonumber(versionDigits)
+NauticusClassic.MAX_VERSION_NUM = 999 -- highest value 3 single-digit segments (9.9.9) can pack to; see comment above
 NauticusClassic.lowestNameTime = "--"
 NauticusClassic.tempText = ""
 NauticusClassic.tempTextCount = 0
@@ -808,7 +809,14 @@ function NauticusClassic:InitialiseConfig()
 
 	if self.db.global.newerVersion then
 		--self:DebugMessage("new version: "..self.db.global.newerVersion.." vs our "..self.versionNum)
-		if self.db.global.newerVersion > self.versionNum then
+		if self.db.global.newerVersion <= 0 or self.db.global.newerVersion > self.MAX_VERSION_NUM then
+			-- a peer once broadcast an implausible version (e.g. a two-digit segment like
+			-- a "1.4.10"-style build, which breaks the single-digit packing) before the
+			-- ReceiveMessage_version guard existed to reject it outright; self-heal here
+			-- so an already-poisoned SavedVariables value doesn't show "update available" forever
+			self.db.global.newerVersion = nil
+			self.db.global.newerVerAge = nil
+		elseif self.db.global.newerVersion > self.versionNum then
 			-- major update released
 			if math.floor(self.db.global.newerVersion/10) > math.floor(self.versionNum/10) then
 				self.comm_disable = true

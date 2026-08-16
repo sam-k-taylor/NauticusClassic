@@ -448,6 +448,14 @@ end
 function NauticusClassic:ReceiveMessage_version(clientversion, distribution, sender)
 	self:DebugMessage(sender.." says: version "..clientversion)
 
+	if clientversion <= 0 or clientversion > self.MAX_VERSION_NUM then
+		-- clientversion packs "MAJOR.MINOR.PATCH" assuming each segment is a single digit
+		-- (see NautCore.lua); a build with a segment >= 10 produces a bogus huge number that
+		-- would otherwise look like a permanent "major update" to everyone who hears it
+		self:DebugMessage(sender.." broadcast an implausible version ("..clientversion.."); ignoring")
+		return
+	end
+
 	if clientversion > self.versionNum then
 		if not self.db.global.newerVersion then
 			self.db.global.newerVersion = clientversion
