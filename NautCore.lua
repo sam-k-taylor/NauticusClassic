@@ -347,7 +347,10 @@ function NauticusClassic:OnEnable()
 	self:RegisterEvent("ZONE_CHANGED")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:RegisterComm(self.DEFAULT_PREFIX)
-	self:JoinWideChannel()
+	-- delay the hidden channel join so Blizzard's default channels (General/Trade/etc.)
+	-- claim their numeric channel IDs first; joining immediately here can race them and
+	-- grab a low number (e.g. 1), bumping the player's normal channels up a slot
+	self:ScheduleTimer("JoinWideChannel", 10)
 
 	NauticusClassic.iconRenderTimer = self:ScheduleRepeatingTimer("DrawMapIcons", 1 / self.db.profile.iconFramerate, true, true)
 	self:ScheduleRepeatingTimer("Clock_OnUpdate", 1) -- every second (clock tick)
