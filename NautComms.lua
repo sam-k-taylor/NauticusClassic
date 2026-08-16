@@ -328,6 +328,17 @@ end
 
 local wideJoinPending = false
 
+-- the client auto-rejoins previously-joined custom channels on login on its own,
+-- independent of any addon code, and does so before OnEnable ever runs — so by the
+-- time our delayed JoinWideChannel() timer fires, we may already be sitting in a
+-- low slot (e.g. 1) that we grabbed before Blizzard's default channels (General/
+-- Trade/etc.) loaded. Call this once, immediately, at the start of OnEnable to drop
+-- that early auto-rejoin and free the slot, so the later delayed join actually lands
+-- in a late slot instead of just adopting whatever number we already had.
+function NauticusClassic:LeaveWideChannel()
+	LeaveChannelByName(wideChannelName)
+end
+
 -- drainWideQueue calls JoinWideChannel() on every hardware event while unjoined
 -- (mouse clicks can fire many times a second); wideJoinPending avoids spamming
 -- JoinChannelByName while a join attempt is already in flight

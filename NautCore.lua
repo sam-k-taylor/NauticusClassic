@@ -347,9 +347,11 @@ function NauticusClassic:OnEnable()
 	self:RegisterEvent("ZONE_CHANGED")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:RegisterComm(self.DEFAULT_PREFIX)
-	-- delay the hidden channel join so Blizzard's default channels (General/Trade/etc.)
-	-- claim their numeric channel IDs first; joining immediately here can race them and
-	-- grab a low number (e.g. 1), bumping the player's normal channels up a slot
+	-- the client auto-rejoins our hidden channel from a prior session on its own, often
+	-- grabbing a low slot (e.g. 1) before Blizzard's default channels (General/Trade/etc.)
+	-- load; drop that early auto-rejoin immediately, then delay our own rejoin so those
+	-- default channels claim their numeric IDs first and we land in a late slot instead
+	self:LeaveWideChannel()
 	self:ScheduleTimer("JoinWideChannel", 10)
 
 	NauticusClassic.iconRenderTimer = self:ScheduleRepeatingTimer("DrawMapIcons", 1 / self.db.profile.iconFramerate, true, true)
