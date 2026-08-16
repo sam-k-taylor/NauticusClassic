@@ -64,7 +64,7 @@ L["Shows only transports relevant to your current zone."] = true
 L["Hint: Click to cycle transport."] = true
 L["Alt-Click to set up alarm."] = true
 L["Ctrl-Click to broadcast in %s."] = true -- %s=channel
-L["New version available! Visit github.com/sam-k-taylor/NauticusClassicResurrected"] = true
+L["New version available! Visit curseforge.com/wow/addons/nauticusclassicresurrected"] = true
 
 -- ship names
 L["The Thundercaller"] = true

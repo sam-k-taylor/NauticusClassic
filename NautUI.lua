@@ -243,7 +243,7 @@ function NauticusClassic:HideTooltip(doHide)
 end
 
 local function AddNewVersionLine()
-	local line = L["New version available! Visit github.com/sam-k-taylor/NauticusClassicResurrected"]
+	local line = L["New version available! Visit curseforge.com/wow/addons/nauticusclassicresurrected"]
 
 	if NauticusClassic.update_available == true then
 		tablet:AddLine(line, nil, true)

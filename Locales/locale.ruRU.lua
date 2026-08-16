@@ -65,7 +65,7 @@ L["Shows only transports relevant to your current zone."] = "Показыват�
 L["Hint: Click to cycle transport."] = "Хинт: Левый клик мыши для циклического переключения транспорта."
 L["Alt-Click to set up alarm."] = "Alt-клик для установки напоминалки."
 L["Ctrl-Click to broadcast in %s."] = true
-L["New version available! Visit github.com/sam-k-taylor/NauticusClassicResurrected"] = "Доступна новая версия NauticusClassic! Забрать можно здесь github.com/sam-k-taylor/NauticusClassicResurrected"
+L["New version available! Visit curseforge.com/wow/addons/nauticusclassicresurrected"] = "Доступна новая версия NauticusClassic! Забрать можно здесь curseforge.com/wow/addons/nauticusclassicresurrected"
 
 -- ship names
 L["The Thundercaller"] = "Призыватель грома"

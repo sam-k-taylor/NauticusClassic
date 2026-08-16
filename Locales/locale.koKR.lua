@@ -68,7 +68,7 @@ L["Shows only transports relevant to your current zone."] =
 L["Hint: Click to cycle transport."] = "힌트: Click to cycle transport." -- re do
 L["Alt-Click to set up alarm."] = true
 L["Ctrl-Click to broadcast in %s."] = true
-L["New version available! Visit github.com/sam-k-taylor/NauticusClassicResurrected"] =
+L["New version available! Visit curseforge.com/wow/addons/nauticusclassicresurrected"] =
 	true -- to do
 
 -- ship names
