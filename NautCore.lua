@@ -15,6 +15,7 @@ local ARTWORK_IN_TRANSIT = ARTWORK_PATH.."Transit"
 local ARTWORK_DOCKED = ARTWORK_PATH.."Docked"
 local MAX_FORMATTED_TIME = 297 -- the longest route minus 60
 local ICON_DEFAULT_SIZE = 18
+local ARRIVAL_SOUND_DISTANCE = 20.0 -- game yards; matches the platform-proximity threshold used elsewhere
 
 NauticusClassic = LibStub("AceAddon-3.0"):NewAddon("NauticusClassic", "AceEvent-3.0", "AceComm-3.0", "AceTimer-3.0")
 local NauticusClassic = NauticusClassic
@@ -57,6 +58,7 @@ local transports
 local transitData = {}
 local triggers = {}
 local zonings = {}
+local dockedAtPlatform = {}
 
 local defaults = {
 	profile = {
@@ -64,6 +66,7 @@ local defaults = {
 		zoneSpecific = false,
 		broadcastChannel = "SAY",
 		alarmOffset = 20,
+		arrivalDing = true,
 		miniIconSize = 1,
 		worldIconSize = 1.25,
 		iconFramerate = 30,
@@ -217,6 +220,18 @@ local _options = {
 		end,
 		min = 0, max = 90, step = 5,
 	},
+	arrivalding = {
+		type = 'toggle',
+		name = L["Arrival sound"],
+		desc = L["Play a sound when a tracked transport arrives at a platform you're standing near."],
+		order = 320,
+		get = function()
+			return NauticusClassic.db.profile.arrivalDing
+		end,
+		set = function(info, val)
+			NauticusClassic.db.profile.arrivalDing = val
+		end,
+	},
 	minibutton = {
 		type = 'toggle',
 		name = L["Mini-Map button"],
@@ -267,6 +282,7 @@ local options = { type = "group", args = {
 			minibutton = _options.minibutton,
 			autoselect = _options.autoselect,
 			alarm = _options.alarm,
+			arrivalding = _options.arrivalding,
 			broadcastchannel = _options.broadcastchannel,
 			header2 = {
 				type = 'header',
@@ -305,6 +321,7 @@ local optionsSlash = { type = 'group', name = "NauticusClassic", args = {
 	[ L["minibutton"] ] = _options.minibutton,
 	[ L["autoselect"] ] = _options.autoselect,
 	[ L["alarm"] ] = _options.alarm,
+	[ L["arrivalding"] ] = _options.arrivalding,
 	[ L["channel"] ] = _options.broadcastchannel,
 } }
 NauticusClassic.optionsSlash = optionsSlash
@@ -358,6 +375,7 @@ function NauticusClassic:OnEnable()
 	NauticusClassic.iconRenderTimer = self:ScheduleRepeatingTimer("DrawMapIcons", 1 / self.db.profile.iconFramerate, true, true)
 	self:ScheduleRepeatingTimer("Clock_OnUpdate", 1) -- every second (clock tick)
 	onUpdateTimer = self:ScheduleRepeatingTimer("CheckTriggers_OnUpdate", 0.8) -- every 4/5th of a second
+	self:ScheduleRepeatingTimer("CheckArrivals_OnUpdate", 1) -- every second, dings when a nearby transport docks
 	--self:ScheduleRepeatingTimer("UpdateChannel", 60)
 
 	--local frameEvent = CreateFrame('Frame')
@@ -747,6 +765,54 @@ function NauticusClassic:CheckTriggers_OnUpdate()
 	local ok, err = pcall(self.CheckTriggers_OnUpdate_Unsafe, self)
 	if not ok then
 		self:DebugMessage("CheckTriggers_OnUpdate error: "..tostring(err))
+	end
+end
+
+-- dings when a transport in the player's current zone newly arrives (docks) at a
+-- platform the player is standing near; edge-triggered on dockedAtPlatform so it
+-- fires once per arrival rather than every tick while docked
+function NauticusClassic:CheckArrivals_OnUpdate_Unsafe()
+	if not self.db.profile.arrivalDing then return; end
+	if not self.currentZoneTransports or self.currentZoneTransports.virtual then return; end
+
+	local px, py, instanceID = HBD:GetPlayerWorldPosition()
+	if not px then return; end
+
+	for transit in pairs(self.currentZoneTransports) do
+		if self:HasKnownCycle(transit) and
+			((not self.db.profile.factionSpecific) or transports[transit].faction == UnitFactionGroup("player") or transports[transit].faction == "Neutral") then
+
+			local dockedIndex
+			local liveIndex = self.liveData[transit].index
+			for _, data in pairs(self.platforms[transit]) do
+				if data.index == liveIndex then
+					dockedIndex = data.index
+					break
+				end
+			end
+
+			if dockedIndex and dockedIndex ~= dockedAtPlatform[transit] then
+				local tx, ty
+				if self.coordsType[transit] < 0 then
+					tx, ty = HBD:GetWorldCoordinatesFromAzerothWorldMap(transitData[transit].x[dockedIndex], transitData[transit].y[dockedIndex], instanceID)
+				else
+					tx, ty = transitData[transit].x[dockedIndex], transitData[transit].y[dockedIndex]
+				end
+				local pdist = tx and ty and HBD:GetWorldDistance(instanceID, px, py, tx, ty)
+				if pdist and ARRIVAL_SOUND_DISTANCE > pdist then
+					PlaySound(5495) -- BoatDockingWarning
+				end
+			end
+			dockedAtPlatform[transit] = dockedIndex
+		end
+	end
+end
+
+-- see Clock_OnUpdate: guards against one bad tick permanently killing this repeating timer
+function NauticusClassic:CheckArrivals_OnUpdate()
+	local ok, err = pcall(self.CheckArrivals_OnUpdate_Unsafe, self)
+	if not ok then
+		self:DebugMessage("CheckArrivals_OnUpdate error: "..tostring(err))
 	end
 end
 

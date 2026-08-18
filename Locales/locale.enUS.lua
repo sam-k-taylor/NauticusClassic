@@ -16,6 +16,7 @@ L["faction"] = true
 L["minibutton"] = true
 L["autoselect"] = true
 L["alarm"] = true
+L["arrivalding"] = true
 L["channel"] = true
 
 -- options
@@ -39,6 +40,8 @@ L["Auto select transport"] = true
 L["Automatically select nearest transport when standing at platform."] = true
 L["Alarm delay"] = true
 L["Change the alarm delay (in seconds)."] = true
+L["Arrival sound"] = true
+L["Play a sound when a tracked transport arrives at a platform you're standing near."] = true
 L["Mini-Map button"] = true
 L["Toggle the Mini-Map button."] = true
 L["Broadcast channel"] = true
